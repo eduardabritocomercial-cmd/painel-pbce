@@ -727,6 +727,10 @@ try{
       return a + (st ? st.aprov_r+st.emaprov_r+st.cancel_r+st.rejeit_r : 0);
     }, 0);
   }
+  // Vendas Feitas (R$) de UM item — usado como base de Meta/Atingimento/Projeção no lugar de item.r (que é só Aprovado)
+  function vendasFeitasItem(item){
+    return totalLancadoRFor([item]);
+  }
   function statusLookupFor(){
     const out = {};
     if(filters.periodo!=='MES' && statusSemanalDisponivel()){
@@ -1101,7 +1105,7 @@ try{
           </div>
           <table><thead><tr><th>#</th><th>Atendente</th><th>Unidade</th><th class="num">Qtd</th><th class="num">Receita</th><th>Atingimento</th></tr></thead>
           <tbody>${ranking.map((it,i)=>{
-            const pct = atingimento(it.r, periodMetaItem(it.u,it.v));
+            const pct = atingimento(vendasFeitasItem(it), periodMetaItem(it.u,it.v));
             const cls = pct==null?'gray':pct>=100?'green':pct>=75?'amber':'red';
             const rk = i===0?'top1':i===1?'top2':i===2?'top3':'';
             return `<tr><td><span class="rank-badge ${rk}">${i+1}</span></td>
@@ -1252,15 +1256,16 @@ try{
     const unitCards = UNIT_ORDER.map(u=>{
       const vs = withPeriod(VD().filter(x=>x.u===u));
       const r = vs.reduce((a,x)=>a+x.r,0), q = vs.reduce((a,x)=>a+x.q,0), m = vs.reduce((a,x)=>a+periodMetaItem(x.u,x.v),0);
-      return {u, q, r, m, pct: atingimento(r,m)};
+      const rFeitas = totalLancadoRFor(vs);
+      return {u, q, r, m, pct: atingimento(rFeitas,m)};
     });
 
     const ticket = vendas ? receita/vendas : 0;
     const vendasFeitas = totalLancadoFor(list);
     const ativos = list.filter(x=>x.q>0).length;
     const melhorUnidade = [...unitCards].sort((a,b)=>(b.pct||0)-(a.pct||0))[0];
-    const bateram = list.filter(x=>{ const p = atingimento(x.r, periodMetaItem(x.u,x.v)); return p!=null && p>=100; }).length;
-    const abaixo75 = list.filter(x=>{ const p = atingimento(x.r, periodMetaItem(x.u,x.v)); return p!=null && p<75; }).length;
+    const bateram = list.filter(x=>{ const p = atingimento(vendasFeitasItem(x), periodMetaItem(x.u,x.v)); return p!=null && p>=100; }).length;
+    const abaixo75 = list.filter(x=>{ const p = atingimento(vendasFeitasItem(x), periodMetaItem(x.u,x.v)); return p!=null && p<75; }).length;
 
     const wt = weeklyTotals(list);
     const situTag = ating==null?['gray','sem meta']:ating>=100?['green','🟢 Meta batida']:ating>=75?['amber','🟡 Próximo da meta']:['red','🔴 Abaixo da meta'];
@@ -1460,9 +1465,9 @@ try{
     const ticket = vendas ? receita/vendas : 0;
     const vendasFeitas = totalLancadoFor(vs);
     const ativos = vs.filter(x=>x.q>0).length;
-    const bateram = vs.filter(x=>{ const p = atingimento(x.r, periodMetaItem(x.u,x.v)); return p!=null && p>=100; }).length;
-    const abaixo75 = vs.filter(x=>{ const p = atingimento(x.r, periodMetaItem(x.u,x.v)); return p!=null && p<75; }).length;
-    const destaque = [...vs].map(x=>({...x, p:atingimento(x.r, periodMetaItem(x.u,x.v))})).sort((a,b)=>(b.p??-1)-(a.p??-1))[0];
+    const bateram = vs.filter(x=>{ const p = atingimento(vendasFeitasItem(x), periodMetaItem(x.u,x.v)); return p!=null && p>=100; }).length;
+    const abaixo75 = vs.filter(x=>{ const p = atingimento(vendasFeitasItem(x), periodMetaItem(x.u,x.v)); return p!=null && p<75; }).length;
+    const destaque = [...vs].map(x=>({...x, p:atingimento(vendasFeitasItem(x), periodMetaItem(x.u,x.v))})).sort((a,b)=>(b.p??-1)-(a.p??-1))[0];
     const situTag = ating==null?['gray','sem meta']:ating>=100?['green','🟢 Meta batida']:ating>=75?['amber','🟡 Próximo da meta']:['red','🔴 Abaixo da meta'];
     const wt = weeklyTotals(vs);
     const ranking = [...vs].sort((a,b)=>b.r-a.r);
@@ -1562,14 +1567,14 @@ try{
         <div class="section-title-row">
           <div class="section-title">${vs.length} atendentes · ${fmtInt(vendas)} vendas · ${fmtBRLShort(receita)}</div>
           ${botaoDownload('ranking-'+titleCase(firstNames(COORD_BY_UNIT[u],2)).replace(/\s+/g,'-')+'-'+filters.mes, ['#','Atendente','Cidade','Qtd','Receita','Meta','Atingimento','CSAT'], ranking.map((it,i)=>{
-            const p = atingimento(it.r, periodMetaItem(it.u,it.v));
+            const p = atingimento(vendasFeitasItem(it), periodMetaItem(it.u,it.v));
             const cs3 = csatFor(it.v);
             return [i+1, titleCase(firstNames(it.v,2)), it.ci, it.q, Math.round(it.r*100)/100, Math.round(periodMetaItem(it.u,it.v)*100)/100, fmtPct(p), cs3?cs3.csat+'%':''];
           }))}
         </div>
         <table><thead><tr><th>#</th><th>Atendente</th><th>Cidade</th><th class="num">Qtd</th><th class="num">Receita</th><th class="num">Meta</th><th>Atingimento</th><th class="num">CSAT</th></tr></thead>
         <tbody>${ranking.map((it,i)=>{
-          const p = atingimento(it.r, periodMetaItem(it.u,it.v));
+          const p = atingimento(vendasFeitasItem(it), periodMetaItem(it.u,it.v));
           const cls = p==null?'gray':p>=100?'green':p>=75?'amber':'red';
           const cs3 = csatFor(it.v);
           return `<tr><td>${i+1}</td><td><b>${esc(titleCase(firstNames(it.v,2)))}</b></td><td class="muted">${esc(it.ci)}</td>
@@ -1925,15 +1930,15 @@ try{
   function pageDesempenho(){
     let list = withPeriod(baseList());
     list = [...list].sort((a,b)=>{
-      const pa = atingimento(a.r, periodMetaItem(a.u,a.v)) ?? -1;
-      const pb = atingimento(b.r, periodMetaItem(b.u,b.v)) ?? -1;
+      const pa = atingimento(vendasFeitasItem(a), periodMetaItem(a.u,a.v)) ?? -1;
+      const pb = atingimento(vendasFeitasItem(b), periodMetaItem(b.u,b.v)) ?? -1;
       return pb-pa;
     });
 
     const csvRowsDesempenho = [];
     const cards = list.map(item=>{
       const meta = periodMetaItem(item.u,item.v);
-      const pct = atingimento(item.r, meta);
+      const pct = atingimento(vendasFeitasItem(item), meta);
       const ticket = item.q ? item.r/item.q : 0;
       const wt = weeksFor(item.u,item.v);
       const wkMap = {}; wt.forEach(w=>wkMap[w.s]=w.q);
@@ -1989,10 +1994,15 @@ try{
   }
 
   // ================= PAGE: Quartis =================
+  // Vendas Feitas (R$) de UM item, numa semana específica — mesma lógica de vendasFeitasItem, mas por semana
+  function vendasFeitasItemSemana(item, s){
+    const arr = STATUS_SEMANAL_BY_MONTH[filters.mes] || [];
+    const st = arr.find(w=>w.u===item.u && w.v===item.v && w.s===s);
+    return st ? st.aprov_r+st.emaprov_r+st.cancel_r+st.rejeit_r : 0;
+  }
   function weeklyQuartilPct(item, s){
     const meta = metaWeek(item.u, item.v, s);
-    const wk = semanalFor().find(w=>w.u===item.u && w.v===item.v && w.s===s);
-    const r = wk ? wk.r : 0;
+    const r = vendasFeitasItemSemana(item, s);
     return atingimento(r, meta);
   }
   function quartilOf(pct){
@@ -2005,7 +2015,7 @@ try{
 
   function pageQuartis(){
     const list = withPeriod(baseList());
-    const withPct = list.map(item=>({...item, pct: atingimento(item.r, periodMetaItem(item.u,item.v))}));
+    const withPct = list.map(item=>({...item, pct: atingimento(vendasFeitasItem(item), periodMetaItem(item.u,item.v))}));
     const q1 = withPct.filter(x=>x.pct!=null && x.pct>=100);
     const q2 = withPct.filter(x=>x.pct!=null && x.pct>=50 && x.pct<100);
     const q3 = withPct.filter(x=>x.pct!=null && x.pct>=25 && x.pct<50);
@@ -2320,7 +2330,7 @@ try{
   // ================= PAGE: Insights & Plano de Ação =================
   function pageInsights(){
     const list = withPeriod(baseList());
-    const withPct = list.map(item=>({...item, pct: atingimento(item.r, periodMetaItem(item.u,item.v))}));
+    const withPct = list.map(item=>({...item, pct: atingimento(vendasFeitasItem(item), periodMetaItem(item.u,item.v))}));
 
     const melhores = [...list].sort((a,b)=>b.r-a.r).slice(0,5);
     const quedaOrdenado = [...withPct].sort((a,b)=>(a.pct??-1)-(b.pct??-1));
