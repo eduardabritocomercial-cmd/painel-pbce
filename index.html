@@ -731,6 +731,9 @@ try{
   function vendasFeitasItem(item){
     return totalLancadoRFor([item]);
   }
+  function vendasFeitasQtdItem(item){
+    return totalLancadoFor([item]);
+  }
   function statusLookupFor(){
     const out = {};
     if(filters.periodo!=='MES' && statusSemanalDisponivel()){
@@ -914,7 +917,9 @@ try{
     const list = withPeriod(baseList());
     const vendas = list.reduce((a,x)=>a+x.q,0);
     const receita = list.reduce((a,x)=>a+x.r,0);
-    const ticket = vendas ? receita/vendas : 0;
+    const vendasFeitasQ = totalLancadoFor(list);
+    const vendasFeitasRTicket = totalLancadoRFor(list);
+    const ticket = vendasFeitasQ ? vendasFeitasRTicket/vendasFeitasQ : 0;
     const ativos = list.filter(x=>x.q>0).length;
     const metaTot = list.reduce((a,x)=>a+periodMetaItem(x.u,x.v),0);
     const vendasFeitasR = totalLancadoRFor(list);
@@ -1055,7 +1060,7 @@ try{
       <div class="grid grid-5" style="margin-bottom:16px;">
         <div class="card kpi acc-orange"><div class="ic ic-orange">📦</div><div class="label">Vendas Feitas</div><div class="value">${fmtInt(vendasFeitas)}</div><div class="sub">${fmtBRLShort(vendasFeitasR)} · todos os status</div></div>
         <div class="card kpi acc-green"><div class="ic ic-green">💵</div><div class="label">Vendas Aprovadas (R$)</div><div class="value">${fmtBRLShort(receita)}</div>${compTag(compReceita) || `<div class="sub">só aprovado</div>`}</div>
-        <div class="card kpi acc-purple"><div class="ic ic-purple">🎫</div><div class="label">Ticket Médio</div><div class="value">${fmtBRL(ticket)}</div><div class="sub">por venda</div></div>
+        <div class="card kpi acc-purple"><div class="ic ic-purple">🎫</div><div class="label">Ticket Médio</div><div class="value">${fmtBRL(ticket)}</div><div class="sub">por venda · todos os status</div></div>
         <div class="card kpi acc-blue"><div class="ic ic-blue">👥</div><div class="label">Atendentes Ativos</div><div class="value">${ativos}</div><div class="sub">de ${list.length} no filtro</div></div>
         <div class="card kpi acc-pink"><div class="ic">🎯</div><div class="label">Atingimento</div><div class="value">${fmtPct(ating)}</div><span class="tag ${atingTag[0]}">${atingTag[1]}</span></div>
       </div>
@@ -1111,7 +1116,7 @@ try{
             return `<tr><td><span class="rank-badge ${rk}">${i+1}</span></td>
               <td><b>${esc(titleCase(firstNames(it.v,2)))}</b><br><span style="color:var(--muted); font-size:10.5px;">${esc(it.ci)}</span></td>
               <td><span class="unit-pill ${UNIT_CLASS[it.u]}">${esc(UNIT_SHORT[it.u])}</span></td>
-              <td class="num">${fmtInt(it.q)}</td><td class="num">${fmtBRL(it.r)}</td>
+              <td class="num">${fmtInt(it.q)}</td><td class="num">${fmtBRL(vendasFeitasItem(it))}</td>
               <td><span class="badge ${cls}">${fmtPct(pct)}</span></td></tr>`;
           }).join('') || `<tr><td colspan="6"><div class="empty-state">Sem dados para este filtro.</div></td></tr>`}</tbody></table>
         </div>
@@ -1257,11 +1262,12 @@ try{
       const vs = withPeriod(VD().filter(x=>x.u===u));
       const r = vs.reduce((a,x)=>a+x.r,0), q = vs.reduce((a,x)=>a+x.q,0), m = vs.reduce((a,x)=>a+periodMetaItem(x.u,x.v),0);
       const rFeitas = totalLancadoRFor(vs);
-      return {u, q, r, m, pct: atingimento(rFeitas,m)};
+      return {u, q, r:rFeitas, m, pct: atingimento(rFeitas,m)};
     });
 
-    const ticket = vendas ? receita/vendas : 0;
     const vendasFeitas = totalLancadoFor(list);
+    const vendasFeitasRTicket = totalLancadoRFor(list);
+    const ticket = vendasFeitas ? vendasFeitasRTicket/vendasFeitas : 0;
     const ativos = list.filter(x=>x.q>0).length;
     const melhorUnidade = [...unitCards].sort((a,b)=>(b.pct||0)-(a.pct||0))[0];
     const bateram = list.filter(x=>{ const p = atingimento(vendasFeitasItem(x), periodMetaItem(x.u,x.v)); return p!=null && p>=100; }).length;
@@ -1386,7 +1392,7 @@ try{
       <div class="section-sub">Indicadores-chave de desempenho</div>
       <div class="grid grid-4" style="margin-bottom:16px;">
         <div class="card kpi acc-blue"><div class="ic ic-blue">🏆</div><div class="label">Melhor Unidade</div><div class="value" style="font-size:16px;">${UNIT_SHORT[melhorUnidade.u]}</div><div class="sub">${fmtPct(melhorUnidade.pct)} atingimento</div></div>
-        <div class="card kpi acc-green"><div class="ic ic-green">🎫</div><div class="label">Ticket Médio</div><div class="value">${fmtBRL(ticket)}</div><div class="sub">por contrato</div></div>
+        <div class="card kpi acc-green"><div class="ic ic-green">🎫</div><div class="label">Ticket Médio</div><div class="value">${fmtBRL(ticket)}</div><div class="sub">por contrato · todos os status</div></div>
         <div class="card kpi acc-purple"><div class="ic ic-purple">👥</div><div class="label">Atendentes Ativos</div><div class="value">${ativos}/${list.length}</div><div class="sub">com vendas no período</div></div>
         <div class="card kpi acc-orange"><div class="ic ic-orange">📦</div><div class="label">Total Contratos</div><div class="value">${fmtInt(vendas)}</div><div class="sub">realizados no período</div></div>
         <div class="card kpi acc-orange"><div class="ic ic-orange">💰</div><div class="label">Receita Total</div><div class="value">${fmtBRLShort(receita)}</div><div class="sub">no período selecionado</div></div>
@@ -1462,8 +1468,8 @@ try{
     const pctMetaFaltante = metaTot>0 ? Math.max(0, 100-ating) : null;
     const projecao = projecaoAtingimento(vendasFeitasR, metaTot, filters.mes);
     const emAndamento = mesEmAndamento(filters.mes);
-    const ticket = vendas ? receita/vendas : 0;
     const vendasFeitas = totalLancadoFor(vs);
+    const ticket = vendasFeitas ? vendasFeitasR/vendasFeitas : 0;
     const ativos = vs.filter(x=>x.q>0).length;
     const bateram = vs.filter(x=>{ const p = atingimento(vendasFeitasItem(x), periodMetaItem(x.u,x.v)); return p!=null && p>=100; }).length;
     const abaixo75 = vs.filter(x=>{ const p = atingimento(vendasFeitasItem(x), periodMetaItem(x.u,x.v)); return p!=null && p<75; }).length;
@@ -1523,7 +1529,7 @@ try{
       <div class="section-title" style="margin-bottom:2px;">📋 KPIs da Equipe</div>
       <div class="section-sub">Indicadores-chave de desempenho</div>
       <div class="grid grid-4" style="margin-bottom:16px;">
-        <div class="card kpi acc-green"><div class="ic ic-green">🎫</div><div class="label">Ticket Médio</div><div class="value">${fmtBRL(ticket)}</div><div class="sub">por contrato</div></div>
+        <div class="card kpi acc-green"><div class="ic ic-green">🎫</div><div class="label">Ticket Médio</div><div class="value">${fmtBRL(ticket)}</div><div class="sub">por contrato · todos os status</div></div>
         <div class="card kpi acc-purple"><div class="ic ic-purple">👥</div><div class="label">Atendentes Ativos</div><div class="value">${ativos}/${vs.length}</div><div class="sub">com vendas no período</div></div>
         <div class="card kpi acc-orange"><div class="ic ic-orange">📦</div><div class="label">Total Contratos</div><div class="value">${fmtInt(vendas)}</div><div class="sub">realizados no período</div></div>
         <div class="card kpi acc-red"><div class="ic ic-red">📉</div><div class="label">% Meta Faltante</div><div class="value">${pctMetaFaltante==null?'—':pctMetaFaltante.toFixed(0)+'%'}</div><div class="sub">a superar</div></div>
@@ -1569,7 +1575,7 @@ try{
           ${botaoDownload('ranking-'+titleCase(firstNames(COORD_BY_UNIT[u],2)).replace(/\s+/g,'-')+'-'+filters.mes, ['#','Atendente','Cidade','Qtd','Receita','Meta','Atingimento','CSAT'], ranking.map((it,i)=>{
             const p = atingimento(vendasFeitasItem(it), periodMetaItem(it.u,it.v));
             const cs3 = csatFor(it.v);
-            return [i+1, titleCase(firstNames(it.v,2)), it.ci, it.q, Math.round(it.r*100)/100, Math.round(periodMetaItem(it.u,it.v)*100)/100, fmtPct(p), cs3?cs3.csat+'%':''];
+            return [i+1, titleCase(firstNames(it.v,2)), it.ci, it.q, Math.round(vendasFeitasItem(it)*100)/100, Math.round(periodMetaItem(it.u,it.v)*100)/100, fmtPct(p), cs3?cs3.csat+'%':''];
           }))}
         </div>
         <table><thead><tr><th>#</th><th>Atendente</th><th>Cidade</th><th class="num">Qtd</th><th class="num">Receita</th><th class="num">Meta</th><th>Atingimento</th><th class="num">CSAT</th></tr></thead>
@@ -1578,7 +1584,7 @@ try{
           const cls = p==null?'gray':p>=100?'green':p>=75?'amber':'red';
           const cs3 = csatFor(it.v);
           return `<tr><td>${i+1}</td><td><b>${esc(titleCase(firstNames(it.v,2)))}</b></td><td class="muted">${esc(it.ci)}</td>
-            <td class="num">${fmtInt(it.q)}</td><td class="num">${fmtBRL(it.r)}</td><td class="num">${fmtBRL(periodMetaItem(it.u,it.v))}</td>
+            <td class="num">${fmtInt(it.q)}</td><td class="num">${fmtBRL(vendasFeitasItem(it))}</td><td class="num">${fmtBRL(periodMetaItem(it.u,it.v))}</td>
             <td><span class="badge ${cls}">${fmtPct(p)}</span></td>
             <td class="num">${cs3 ? cs3.csat+'%' : '—'}</td></tr>`;
         }).join('') || `<tr><td colspan="8"><div class="empty-state">Sem atendentes neste filtro.</div></td></tr>`}</tbody></table>
@@ -1939,7 +1945,9 @@ try{
     const cards = list.map(item=>{
       const meta = periodMetaItem(item.u,item.v);
       const pct = atingimento(vendasFeitasItem(item), meta);
-      const ticket = item.q ? item.r/item.q : 0;
+      const rFeitasItem = vendasFeitasItem(item);
+      const qFeitasItem = vendasFeitasQtdItem(item);
+      const ticket = qFeitasItem ? rFeitasItem/qFeitasItem : 0;
       const wt = weeksFor(item.u,item.v);
       const wkMap = {}; wt.forEach(w=>wkMap[w.s]=w.q);
       const cls = pct==null?'gray':pct>=100?'green':pct>=75?'amber':'red';
@@ -1947,7 +1955,7 @@ try{
       const cs4 = csatFor(item.v);
       csvRowsDesempenho.push([
         titleCase(firstNames(item.v,2)), item.ci, titleCase(firstNames(item.c,2)), UNIT_SHORT[item.u]||item.u,
-        item.q, Math.round(item.r*100)/100, Math.round(meta*100)/100, fmtPct(pct), fmtBRL(ticket),
+        item.q, Math.round(rFeitasItem*100)/100, Math.round(meta*100)/100, fmtPct(pct), fmtBRL(ticket),
         wkMap[1]||0, wkMap[2]||0, wkMap[3]||0, wkMap[4]||0, wkMap[5]||0,
         cs4 ? cs4.csat+'%' : ''
       ]);
@@ -1964,7 +1972,7 @@ try{
         <div class="mini-progress"><div class="fill" style="width:${Math.min(100,pct||0)}%; background:${pct>=100?'var(--green)':pct>=75?'var(--amber)':'var(--red)'};"></div></div>
         <div class="stats">
           <div class="stat"><div class="l">Vendas</div><div class="v">${fmtInt(item.q)}</div></div>
-          <div class="stat"><div class="l">Receita</div><div class="v">${fmtBRLShort(item.r)}</div></div>
+          <div class="stat"><div class="l">Receita</div><div class="v">${fmtBRLShort(rFeitasItem)}</div></div>
           <div class="stat"><div class="l">Meta</div><div class="v">${fmtBRLShort(meta)}</div></div>
           <div class="stat"><div class="l">Ticket</div><div class="v">${fmtBRL(ticket)}</div></div>
         </div>
@@ -2021,10 +2029,10 @@ try{
     const q3 = withPct.filter(x=>x.pct!=null && x.pct>=25 && x.pct<50);
     const q4 = withPct.filter(x=>x.pct==null || x.pct<25);
 
-    const totalReceita = list.reduce((a,x)=>a+x.r,0) || 1;
+    const totalReceita = totalLancadoRFor(list) || 1;
     function quartilStats(arr){
-      const r = arr.reduce((a,x)=>a+x.r,0);
-      const q = arr.reduce((a,x)=>a+x.q,0);
+      const r = totalLancadoRFor(arr);
+      const q = totalLancadoFor(arr);
       return {pctReceita: Math.round(r/totalReceita*100), ticket: q? r/q : 0};
     }
     const s1=quartilStats(q1), s2=quartilStats(q2), s3=quartilStats(q3), s4=quartilStats(q4);
@@ -2101,7 +2109,7 @@ try{
       </div>
       <div style="margin-bottom:16px;">
         <div class="section-title" style="margin-bottom:2px;">💰 Receita e Ticket Médio por Quartil</div>
-        <div class="section-sub" style="margin-bottom:10px;">Peso de cada quartil na receita da regional</div>
+        <div class="section-sub" style="margin-bottom:10px;">Peso de cada quartil no total de vendas feitas da regional (todos os status)</div>
         <div class="grid grid-4">
           <div class="quartil-card q1"><div class="qbadge">Q1</div><div class="qn">% DA RECEITA REGIONAL</div><div class="qc">${s1.pctReceita}%</div><div class="ql">Ticket médio: ${fmtBRL(s1.ticket)}</div></div>
           <div class="quartil-card q2"><div class="qbadge">Q2</div><div class="qn">% DA RECEITA REGIONAL</div><div class="qc">${s2.pctReceita}%</div><div class="ql">Ticket médio: ${fmtBRL(s2.ticket)}</div></div>
