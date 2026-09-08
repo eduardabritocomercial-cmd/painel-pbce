@@ -942,9 +942,10 @@ try{
     // último dia com vendas (usado só no selo de "última venda aprovada")
     const allDays = [...new Set(DI().map(d=>d.d))].sort();
     const lastDay = allDays[allDays.length-1];
-    // dia de ontem de verdade (calendário), usado especificamente no bloco "Resultado do Dia Anterior"
+    // dia de ontem de verdade (calendário), pulando domingo (folga), usado no bloco "Resultado do Dia Anterior"
     const ontemDate = new Date();
     ontemDate.setDate(ontemDate.getDate()-1);
+    while(ontemDate.getDay()===0){ ontemDate.setDate(ontemDate.getDate()-1); } // 0 = domingo
     const diaAnteriorReal = ontemDate.toISOString().slice(0,10);
     const dayRows = DI().filter(d=>d.d===diaAnteriorReal);
     const dayByUnit = UNIT_ORDER.map(u=>{
