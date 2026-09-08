@@ -900,13 +900,17 @@ try{
   function destroyCharts(){ chartRefs.forEach(c=>c && c.destroy()); chartRefs = []; }
 
   function weeklyTotals(list){
-    if(semanalFor().length===0) return [1,2,3,4,5].map(s=>({s, meta:0, valor:0, qtd:0}));
+    const arr = STATUS_SEMANAL_BY_MONTH[filters.mes] || [];
+    if(arr.length===0) return [1,2,3,4,5].map(s=>({s, meta:0, valor:0, qtd:0}));
     return [1,2,3,4,5].map(s=>{
       let meta=0, valor=0, qtd=0;
       list.forEach(item=>{
         meta += metaWeek(item.u, item.v, s);
-        const wk = semanalFor().find(w=>w.u===item.u && w.v===item.v && w.s===s);
-        if(wk){ valor+=wk.r; qtd+=wk.q; }
+        const wk = arr.find(w=>w.u===item.u && w.v===item.v && w.s===s);
+        if(wk){
+          valor += wk.aprov_r+wk.emaprov_r+wk.cancel_r+wk.rejeit_r;
+          qtd += wk.aprov_q+wk.emaprov_q+wk.cancel_q+wk.rejeit_q;
+        }
       });
       return {s, meta, valor, qtd};
     });
@@ -920,7 +924,7 @@ try{
     const vendasFeitasQ = totalLancadoFor(list);
     const vendasFeitasRTicket = totalLancadoRFor(list);
     const ticket = vendasFeitasQ ? vendasFeitasRTicket/vendasFeitasQ : 0;
-    const ativos = list.filter(x=>x.q>0).length;
+    const ativos = list.filter(x=>vendasFeitasQtdItem(x)>0).length;
     const metaTot = list.reduce((a,x)=>a+periodMetaItem(x.u,x.v),0);
     const vendasFeitasR = totalLancadoRFor(list);
     const ating = atingimento(vendasFeitasR, metaTot);
@@ -930,10 +934,10 @@ try{
 
     const unitBars = UNIT_ORDER.map(u=>{
       const vs = withPeriod(VD().filter(x=>x.u===u));
-      return {u, realizado: vs.reduce((a,x)=>a+x.r,0), meta: vs.reduce((a,x)=>a+periodMetaItem(x.u,x.v),0)};
+      return {u, realizado: totalLancadoRFor(vs), meta: vs.reduce((a,x)=>a+periodMetaItem(x.u,x.v),0)};
     });
 
-    const ranking = [...list].sort((a,b)=>b.r-a.r).slice(0,10);
+    const ranking = [...list].sort((a,b)=>vendasFeitasItem(b)-vendasFeitasItem(a)).slice(0,10);
 
     // último dia com vendas (usado só no bloco "Resultado por Coordenador")
     const allDays = [...new Set(DI().map(d=>d.d))].sort();
@@ -1093,7 +1097,7 @@ try{
       <div class="two-col" style="margin-bottom:16px;">
         <div class="card">
           <div class="section-title">Evolução Semanal</div>
-          <div class="section-sub">Receita realizada (R$) vs Meta por semana</div>
+          <div class="section-sub">Vendas feitas (R$, todos os status) vs Meta por semana</div>
           <div class="chart-wrap"><canvas id="chartEvolucao"></canvas></div>
         </div>
         <div class="card">
