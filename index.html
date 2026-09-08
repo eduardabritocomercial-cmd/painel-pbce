@@ -939,10 +939,14 @@ try{
 
     const ranking = [...list].sort((a,b)=>vendasFeitasItem(b)-vendasFeitasItem(a)).slice(0,10);
 
-    // último dia com vendas (usado só no bloco "Resultado por Coordenador")
+    // último dia com vendas (usado só no selo de "última venda aprovada")
     const allDays = [...new Set(DI().map(d=>d.d))].sort();
     const lastDay = allDays[allDays.length-1];
-    const dayRows = DI().filter(d=>d.d===lastDay);
+    // dia de ontem de verdade (calendário), usado especificamente no bloco "Resultado do Dia Anterior"
+    const ontemDate = new Date();
+    ontemDate.setDate(ontemDate.getDate()-1);
+    const diaAnteriorReal = ontemDate.toISOString().slice(0,10);
+    const dayRows = DI().filter(d=>d.d===diaAnteriorReal);
     const dayByUnit = UNIT_ORDER.map(u=>{
       const rows = dayRows.filter(d=>d.u===u);
       const receitaDia = rows.reduce((a,x)=>a+x.r,0);
@@ -1137,7 +1141,7 @@ try{
       </div>
       <div class="card" style="margin-bottom:16px;">
         <div class="section-title">👥 Resultado por Coordenador · Dia Anterior</div>
-        <div class="section-sub">Referência: ${fmtDate(lastDay)}</div>
+        <div class="section-sub">Referência: ${fmtDate(diaAnteriorReal)}${dayRows.length===0 ? ' · sem vendas registradas ainda para essa data' : ''}</div>
         <div class="grid grid-3">
           ${dayByUnit.map(d=>{
             const destaqueDia = [...d.rows].sort((a,b)=>b.r-a.r)[0];
