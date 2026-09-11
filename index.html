@@ -2305,22 +2305,28 @@ try{
         const sm = skyMovelResumo(filters.mes, filters.unidade);
         if(!sm || sm.q===0) return '';
         const SKY_MOVEL_DETALHADO = RAW.skyMovelDetalhado || [];
-        const linhasSky = SKY_MOVEL_DETALHADO
-          .filter(x => x.mes===filters.mes && (filters.unidade==='ALL' || x.u===filters.unidade))
-          .sort((a,b)=> b.valor-a.valor)
-          .map(x => [x.data_venda, titleCase(firstNames(x.v,2)), titleCase(firstNames(x.c,2)), UNIT_SHORT[x.u]||x.u, x.est, x.tipo==='PF'?'Cliente PF':'Proxxima (interno)', x.valor]);
-        const btnDlSky = botaoDownload('sky-movel-'+filters.mes, ['Data da Venda','Atendente','Coordenador','Unidade','Status','Tipo de Cliente','Valor'], linhasSky);
+        const linhasFiltradas = SKY_MOVEL_DETALHADO
+          .filter(x => x.mes===filters.mes && (filters.unidade==='ALL' || x.u===filters.unidade));
+        function linhasSkyPorEstagio(est){
+          return linhasFiltradas.filter(x=>x.est===est)
+            .sort((a,b)=> b.valor-a.valor)
+            .map(x => [x.data_venda, titleCase(firstNames(x.v,2)), titleCase(firstNames(x.c,2)), UNIT_SHORT[x.u]||x.u, x.tipo==='PF'?'Cliente PF':'Proxxima (interno)', x.valor]);
+        }
+        const colunasSky = ['Data da Venda','Atendente','Coordenador','Unidade','Tipo de Cliente','Valor'];
+        const btnAprov = botaoDownload('sky-movel-aprovado-'+filters.mes, colunasSky, linhasSkyPorEstagio('APROVADO'));
+        const btnEmAprov = botaoDownload('sky-movel-em-aprovacao-'+filters.mes, colunasSky, linhasSkyPorEstagio('EM APROVAÇÃO'));
+        const btnCancel = botaoDownload('sky-movel-cancelado-'+filters.mes, colunasSky, linhasSkyPorEstagio('CANCELADO'));
+        const btnRejeit = botaoDownload('sky-movel-rejeitado-'+filters.mes, colunasSky, linhasSkyPorEstagio('REJEITADO'));
         return `<div class="card" style="margin-bottom:16px;">
           <div class="section-title-row">
             <div><div class="section-title">📶 SKY MOVEL — Status dos Contratos</div>
             <div class="section-sub">Contratos de SKY MOVEL não entram nos números principais desta página (exclusão "Móvel Contratos") — aqui você vê eles à parte.</div></div>
-            ${btnDlSky}
           </div>
           <div class="grid grid-4" style="margin-top:12px;">
-            <div class="card status-card green"><div class="ic">✅</div><div class="n">${fmtInt(sm.aprov_q)}</div><div class="l">Aprovado</div></div>
-            <div class="card status-card amber"><div class="ic">⏳</div><div class="n">${fmtInt(sm.emaprov_q)}</div><div class="l">Em Aprovação</div></div>
-            <div class="card status-card gray"><div class="ic">⊘</div><div class="n">${fmtInt(sm.cancel_q)}</div><div class="l">Cancelado</div></div>
-            <div class="card status-card red"><div class="ic">✗</div><div class="n">${fmtInt(sm.rejeit_q)}</div><div class="l">Rejeitado</div></div>
+            <div class="card status-card green" style="position:relative;"><span class="status-card-dl" title="Baixar planilha com esses dados">${btnAprov}</span><div class="ic">✅</div><div class="n">${fmtInt(sm.aprov_q)}</div><div class="l">Aprovado</div></div>
+            <div class="card status-card amber" style="position:relative;"><span class="status-card-dl" title="Baixar planilha com esses dados">${btnEmAprov}</span><div class="ic">⏳</div><div class="n">${fmtInt(sm.emaprov_q)}</div><div class="l">Em Aprovação</div></div>
+            <div class="card status-card gray" style="position:relative;"><span class="status-card-dl" title="Baixar planilha com esses dados">${btnCancel}</span><div class="ic">⊘</div><div class="n">${fmtInt(sm.cancel_q)}</div><div class="l">Cancelado</div></div>
+            <div class="card status-card red" style="position:relative;"><span class="status-card-dl" title="Baixar planilha com esses dados">${btnRejeit}</span><div class="ic">✗</div><div class="n">${fmtInt(sm.rejeit_q)}</div><div class="l">Rejeitado</div></div>
           </div>
           <div style="display:flex; gap:24px; margin-top:12px; flex-wrap:wrap; font-size:12px; color:var(--muted);">
             <span>👤 Cliente PF: <b style="color:var(--ink);">${fmtInt(sm.q_pf)}</b> (${fmtBRLShort(sm.r_pf)}) — "Móvel Contratos", excluído do total</span>
